@@ -1,0 +1,156 @@
+---
+title: "Assignment 2"
+author: "Hannah Garcia-Wickstrum"
+date: "3/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tibble)
+
+# generate vectors of fish species: tuna, mahimahi, shark, salmon, flounder. 
+fish_species = c("tuna", "mahimahi", "shark", "salmon", 'flounder')
+
+# generate vectors of catch locations: Naples, Mohawk, Carpinteria, Isla Vista.
+catch_locations = c("Naples", "Mohawk", "Carp", "IV")
+
+# generate vectors of fish prices
+set_price = runif(min=7, max=15, n=length(fish_species))
+
+# Create a table of prices for fish
+fish_prices = data.frame(fish = fish_species, price = set_price) %>%
+  arrange(fish)
+
+# Create catch data for locations
+catch_Naples = sample(fish_species, size = 100, prob = c(0.1, 0.4, 0.2, 0.15, 0.15), replace = T)
+catch_Mohawk = sample(fish_species, size = 100, prob = c(0.3, 0.2, 0.15, 0.2, 0.15), replace = T)
+catch_Carp = sample(fish_species, size=100, prob = c(0.4, 0.12, 0.18, 0.1, 0.2), replace = T)
+catch_IV = sample(fish_species, size=100, prob = c(0.3, 0.17, 0.2, 0.23, 0.1), replace = T)
+
+# create data-frame of fish caught at each location
+catch = data.frame(catch_Naples, catch_Mohawk, catch_Carp, catch_IV) # values already recognized as a factor
+
+# Get the counts of each fish species for each location (instead of a list of 100)
+revenue = data.frame(matrix(nrow=nrow(fish_prices), ncol=ncol(catch)))
+
+for(i in 1:ncol(catch)) {
+  revenue[i]=summary(catch[[i]])
+}
+
+# Add fish names to revenue dataframe
+fish_names = names(summary(catch[[1]]))
+revenue$fish_names=fish_names 
+```
+
+```{r}
+# Output 1: most common fish caught at location
+
+catch_summary = function (fish) {
+  
+  #create data frame to store outputs
+  dom_df = data.frame(matrix(ncol = 2, nrow = ncol(catch)))
+  dom_df = setNames(dom_df, c("most_frequent_fish", "location"))
+  
+  # determine most frequent fish caught in each location
+  for (i in 1:ncol(fish)) {
+    #dom_df[[i, 1]] = which.max(summary(catch[[i]]))  # dont need this bc it reports the number of occurances of the most frequent fish and we just want the name
+    dom_df[[i, 1]] = names(which.max(summary(fish[[i]])))
+    dom_df[[i, 2]] = colnames(fish)[i]
+  }
+  return(dom_df)
+}
+
+catch_summary(catch)
+
+# FINAL: most fish type caught at each location
+  # Naples: mahimahi
+  # Mohawk: tuna
+  # Carpinteria (Carp): tuna
+  # Isla Vista (IV): tuna
+```
+
+```{r}
+# Output 2: total revenue for each location
+
+location_revenue = function(fish){
+  
+  #create data frame to store outputs
+  location_revenue_df = data.frame(matrix(ncol = ncol(catch), nrow = nrow(fish_prices)))
+  
+  # count number of fish
+  for(i in 1:ncol(catch)) {
+    location_revenue_df[i]=summary(catch[[i]])
+  }
+  
+  #add column names
+  colnames(location_revenue_df) = colnames(catch) 
+  
+  # add row for fish species and move this row to the front
+  names=names(summary(catch[[1]]))
+  location_revenue_df$fish = names
+  location_revenue_df <- location_revenue_df %>% 
+    dplyr::select(fish, everything())
+  
+  # add prices
+  fish_price_df = full_join(location_revenue_df, fish_prices, by = "fish")
+  
+  # new df to store location revenue
+  price_df = data.frame(matrix(ncol = ncol(catch), nrow = nrow(fish_prices)))
+  
+  # math
+  for (i in 2:ncol(location_revenue_df)) {
+    price_df[,i] = location_revenue_df[,i] * fish_price_df$price
+  }
+  
+  return(price_df)
+}
+
+location_revenue(catch)
+
+final_revenue_total <- colSums(location_revenue(catch(2:5)))
+
+final_revenue_total_df <- as.data.frame(final_revenue_total)
+
+final_revenue_total_df 
+```
+
+```{r}
+# Output 3: total fisheries revenue sum
+
+total_fisheries <- colSums(final_revenue_total_df, na.rm=TRUE)
+
+total_fisheries_df <- as.data.frame(total_fisheries)
+
+total_fisheries_df
+```
+
+```{r}
+# Graph of revenue by location (as text) - Can't figure out. Spent way too much time on this and I need to go to bed. 
+
+# if(graph == TRUE) 
+# {
+#   total_fisheries_df_graph=(data=final_revenue_total_df, rows = (V2:V:5), names_to = "catch_locations", values_to = "location_revenue_df")
+# 
+#   revenue_graph=ggplot(data=total_fisheries_df_graph, aes(x=catch_locations, y=revenue)) +
+#     geom_col()
+# 
+# return(list(frequency, final_revenue_total_df, total_revenue, revenue_graph))
+# 
+# }
+
+# final_revenue_total_df_2 <- final_revenue_total_df[-c(1),]
+# names(final_revenue_total_df_2) <- c("Naples", "Mohawk", "Carp", "IV")
+# final_revenue_total_df_2 <- as.data.frame(final_revenue_total_df_2)
+
+# 
+# revenue_graph <- ggplot(data=final_revenue_total_df_2, aes(y=V1)) +
+#   geom_col()
+# 
+# revenue_graph
+```
+
